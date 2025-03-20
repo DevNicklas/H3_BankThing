@@ -1,5 +1,7 @@
-﻿using H3_BankThing.Interfaces;
+﻿using H3_BankThing.Data;
+using H3_BankThing.Interfaces;
 using H3_BankThing.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,32 +11,80 @@ using System.Threading.Tasks;
 namespace H3_BankThing.Repositories
 {
     /// <summary>
-    /// Provides implementation for account repository operations, such as retrieving and adding bank accounts.
+    /// Provides repository methods for handling bank account data within the application database.
     /// Implements the <see cref="IAccountRepository"/> interface.
     /// </summary>
     public class AccountRepository : IAccountRepository
     {
-        // In-memory list to store bank accounts
-        private readonly List<BankAccount> _accounts = new List<BankAccount>();
+        private readonly ApplicationDbContext _context;
 
         /// <summary>
-        /// Retrieves a bank account based on the specified account number and PIN code.
+        /// Initializes a new instance of the <see cref="AccountRepository"/> class.
         /// </summary>
-        /// <param name="accountNumber">The unique identifier for the bank account.</param>
-        /// <param name="pinCode">The PIN code associated with the account for security purposes.</param>
-        /// <returns>A <see cref="BankAccount"/> object if found, or null if no matching account is found.</returns>
-        public BankAccount GetAccount(string accountNumber, string pinCode)
+        /// <param name="context">The application's database context.</param>
+        public AccountRepository(ApplicationDbContext context)
         {
-            return _accounts.FirstOrDefault(a => a.AccountNumber == accountNumber && a.PinCode == pinCode);
+            _context = context;
         }
 
         /// <summary>
-        /// Adds a new bank account to the repository.
+        /// Retrieves an account from the database based on the provided account number and PIN code.
         /// </summary>
-        /// <param name="account">The bank account to be added to the repository.</param>
+        /// <param name="accountNumber">The unique identifier for the bank account.</param>
+        /// <param name="pinCode">The PIN code associated with the account.</param>
+        /// <returns>
+        /// A <see cref="BankAccount"/> object if a matching account is found; otherwise, <c>null</c>.
+        /// </returns>
+        public BankAccount? GetAccount(string accountNumber, string pinCode)
+        {
+            return _context.Accounts.FirstOrDefault(a => a.AccountNumber == accountNumber && a.PinCode == pinCode);
+
+        }
+
+        /// <summary>
+        /// Adds a new bank account to the database if it does not already exist.
+        /// </summary>
+        /// <param name="account">The bank account to be added.</param>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if an account with the same account number already exists.
+        /// </exception>
         public void AddAccount(BankAccount account)
         {
-            _accounts.Add(account);
+            if (DoesAccountExist(account))
+            {
+                throw new InvalidOperationException("An account with this account number already exists.");
+            }
+
+            _context.Accounts.Add(account);
+            _context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Updates an existing bank account in the database.
+        /// </summary>
+        /// <param name="account">The updated bank account object.</param>
+        public void UpdateAccount(BankAccount account)
+        {
+            _context.Accounts.Update(account);
+            _context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Checks whether an account with the same account number already exists in the database.
+        /// </summary>
+        /// <param name="account">The bank account to check for existence.</param>
+        /// <returns><c>true</c> if the account exists; otherwise, <c>false</c>.</returns>
+        public bool DoesAccountExist(BankAccount account)
+        {
+            BankAccount? existingAccount = _context.Accounts
+                .FirstOrDefault(a => a.AccountNumber == account.AccountNumber);
+
+            if (existingAccount == null)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

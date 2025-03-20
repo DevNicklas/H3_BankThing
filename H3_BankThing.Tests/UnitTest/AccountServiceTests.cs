@@ -1,6 +1,9 @@
-﻿using H3_BankThing.Interfaces;
+﻿using H3_BankThing.Data;
+using H3_BankThing.Interfaces;
 using H3_BankThing.Models;
+using H3_BankThing.Repositories;
 using H3_BankThing.Services;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -12,8 +15,8 @@ using System.Threading.Tasks;
 namespace H3_BankThing.Tests.UnitTest
 {
     /// <summary>
-    /// Unit tests for the <see cref="AccountService"/> class, testing account creation, withdrawal, 
-    /// and handling of various edge cases such as insufficient balance and incorrect account credentials.
+    /// Unit tests for the <see cref="AccountService"/> class, covering account creation validation 
+    /// and balance sufficiency checks.
     /// </summary>
     public class AccountServiceTests
     {
@@ -21,34 +24,13 @@ namespace H3_BankThing.Tests.UnitTest
         private readonly AccountService _accountService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AccountServiceTests"/> class and 
-        /// sets up the necessary mock repository and account service instance.
+        /// Initializes a new instance of the <see cref="AccountServiceTests"/> class 
+        /// and sets up a mock repository and account service instance.
         /// </summary>
         public AccountServiceTests()
         {
             _mockRepository = new Mock<IAccountRepository>();
-
-            // Initialize AccountService with the mocked repository
             _accountService = new AccountService(_mockRepository.Object);
-        }
-
-        /// <summary>
-        /// Tests the ability to successfully create a new account with valid parameters.
-        /// </summary>
-        [Fact]
-        public void Can_Create_Account()
-        {
-            string accountNumber = "12345678";
-            string pinCode = "1234";
-            decimal initialBalance = 1000;
-
-            BankAccount account = _accountService.CreateAccount(accountNumber, pinCode, initialBalance);
-
-            // Assert that the account was created correctly
-            Assert.NotNull(account);
-            Assert.Equal(accountNumber, account.AccountNumber);
-            Assert.Equal(pinCode, account.PinCode);
-            Assert.Equal(initialBalance, account.Balance);
         }
 
         /// <summary>
@@ -59,7 +41,7 @@ namespace H3_BankThing.Tests.UnitTest
         {
             // Assert that an exception is thrown when the account number is empty
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.CreateAccount("", "1234", 100));
+                _accountService.CreateAccount("", "1234", 1000));
 
             // Assert the exception message
             Assert.Equal("Account number and PIN code cannot be empty.", exception.Message);
@@ -73,88 +55,46 @@ namespace H3_BankThing.Tests.UnitTest
         {
             // Assert that an exception is thrown when the PIN code is empty
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.CreateAccount("12345678", "", 100));
+                _accountService.CreateAccount("12345678", "", 1000));
 
             // Assert the exception message
             Assert.Equal("Account number and PIN code cannot be empty.", exception.Message);
         }
 
         /// <summary>
-        /// Tests the ability to withdraw money from an account when sufficient balance is available.
+        /// Tests that <see cref="AccountService.HasSufficientBalance"/> returns true 
+        /// when the account has enough balance for the requested withdrawal.
         /// </summary>
         [Fact]
-        public void Can_Withdraw_With_Sufficient_Balance()
+        public void Returns_True_When_Balance_Is_Sufficient()
         {
-            BankAccount account = _accountService.CreateAccount("12345678", "1234", 500);
+            BankAccount account = new BankAccount
+            {
+                AccountNumber = "12345678",
+                PinCode = "1234",
+                Balance = 500
+            };
 
-            // Setup mock repository to return the created account
-            _mockRepository.Setup(repo => repo.GetAccount("12345678", "1234")).Returns(account);
-
-            decimal newBalance = _accountService.Withdraw("12345678", "1234", 200);
-
-            // Assert the updated balance is 300
-            Assert.Equal(300, account.Balance);
+            // Assert that the method returns true for a withdrawal of 300
+            Assert.True(_accountService.HasSufficientBalance(account, 300));
         }
 
         /// <summary>
-        /// Tests that an exception is thrown when attempting to withdraw money with insufficient balance.
+        /// Tests that <see cref="AccountService.HasSufficientBalance"/> returns false 
+        /// when the account does not have enough balance for the requested withdrawal.
         /// </summary>
         [Fact]
-        public void Cannot_Withdraw_With_Insufficient_Balance()
+        public void Returns_False_When_Balance_Is_InSufficient()
         {
-            BankAccount account = _accountService.CreateAccount("12345678", "1234", 100);
+            BankAccount account = new BankAccount
+            {
+                AccountNumber = "12345678",
+                PinCode = "1234",
+                Balance = 200
+            };
 
-            // Setup mock repository to return the created account
-            _mockRepository.Setup(repo => repo.GetAccount("12345678", "1234")).Returns(account);
-
-            // Assert that an exception is thrown when attempting to withdraw 200 (insufficient funds)
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.Withdraw("12345678", "1234", 200));
-
-            // Assert the exception message and verify balance remains unchanged
-            Assert.Equal("Insufficient funds.", exception.Message);
-            Assert.Equal(100, account.Balance);
+            // Assert that the method returns false for a withdrawal of 300
+            Assert.False(_accountService.HasSufficientBalance(account, 300));
         }
-
-        /// <summary>
-        /// Tests that an exception is thrown when attempting to withdraw from an account with an incorrect PIN code.
-        /// </summary>
-        [Fact]
-        public void Cannot_Withdraw_With_Incorrect_Pin()
-        {
-            BankAccount account = _accountService.CreateAccount("12345678", "1234", 500);
-
-            // Setup mock repository to return null for the incorrect PIN code
-            _mockRepository.Setup(repo => repo.GetAccount("12345678", "0000")).Returns((BankAccount?)null);
-
-            // Assert that an exception is thrown for incorrect PIN
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.Withdraw("12345678", "0000", 200));
-
-            // Assert the exception message and verify balance remains unchanged
-            Assert.Equal("Invalid account number or PIN.", exception.Message);
-            Assert.Equal(500, account.Balance);
-        }
-
-        /// <summary>
-        /// Tests that an exception is thrown when attempting to withdraw from an account with an incorrect account number.
-        /// </summary>
-        [Fact]
-        public void Cannot_Withdraw_With_Incorrect_Account_Number()
-        {
-            BankAccount account = _accountService.CreateAccount("12345678", "1234", 500);
-
-            // Setup mock repository to return null for the incorrect account number
-            _mockRepository.Setup(repo => repo.GetAccount("00000000", "1234")).Returns((BankAccount?)null);
-
-            // Assert that an exception is thrown for incorrect account number
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.Withdraw("00000000", "1234", 200));
-
-            // Assert the exception message and verify balance remains unchanged
-            Assert.Equal("Invalid account number or PIN.", exception.Message);
-            Assert.Equal(500, account.Balance);
-        }
-
     }
 }

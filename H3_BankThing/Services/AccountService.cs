@@ -3,6 +3,7 @@ using H3_BankThing.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -43,11 +44,6 @@ namespace H3_BankThing.Services
                 throw new InvalidOperationException("Account number and PIN code cannot be empty.");
             }
 
-            if (initialBalance < 0)
-            {
-                throw new InvalidOperationException("Initial balance cannot be negative.");
-            }
-
             BankAccount newAccount = new BankAccount
             {
                 AccountNumber = accountNumber,
@@ -72,7 +68,7 @@ namespace H3_BankThing.Services
         /// </exception>
         public decimal Withdraw(string accountNumber, string pinCode, decimal amount)
         {
-            BankAccount account = _accountRepository.GetAccount(accountNumber, pinCode);
+            BankAccount? account = _accountRepository.GetAccount(accountNumber, pinCode);
 
             // Check if the account does exist
             if (account == null)
@@ -81,14 +77,28 @@ namespace H3_BankThing.Services
             }
                 
             // Check if there are sufficient funds for the withdrawal
-            if (account.Balance < amount)
+            if (!HasSufficientBalance(account, amount))
             {
                 throw new InvalidOperationException("Insufficient funds.");
             }
                 
             account.Balance -= amount;
 
+            _accountRepository.UpdateAccount(account);
+
             return account.Balance;
+        }
+
+        /// <summary>
+        /// Checks if the given account has enough balance for a specified withdrawal amount.
+        /// </summary>
+        /// <param name="account">The bank account to check.</param>
+        /// <param name="amount">The amount to compare against the account balance.</param>
+        /// <returns><c>true</c> if the account has sufficient balance; otherwise, <c>false</c>.</returns>
+        public bool HasSufficientBalance(BankAccount account, decimal amount)
+        {
+            
+            return account.Balance >= amount;
         }
     }
 }

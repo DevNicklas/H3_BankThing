@@ -18,12 +18,14 @@ namespace H3_BankThing.Interfaces
         /// <param name="accountNumber">The unique identifier of the bank account.</param>
         /// <param name="pinCode">The PIN code associated with the account for authentication.</param>
         /// <returns>A <see cref="BankAccount"/> object if found; otherwise, null.</returns>
-        BankAccount GetAccount(string accountNumber, string pinCode);
+        BankAccount? GetAccount(string accountNumber, string pinCode);
 
         /// <summary>
         /// Add the account in the system
         /// </summary>
         /// <param name="account">The bank account object to be added.</param>
         void AddAccount(BankAccount account);
+        void UpdateAccount(BankAccount account);
+
     }
 }

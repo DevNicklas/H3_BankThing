@@ -1,6 +1,10 @@
-﻿using H3_BankThing.Interfaces;
+﻿using H3_BankThing.Data;
+using H3_BankThing.Interfaces;
 using H3_BankThing.Models;
+using H3_BankThing.Repositories;
 using H3_BankThing.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Data;
 
@@ -10,7 +14,7 @@ namespace H3_BankThing
     {
         static void Main(string[] args)
         {
-
+            
         }
     }
 }
