@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace H3_BankThing.Services
@@ -39,9 +40,14 @@ namespace H3_BankThing.Services
         public BankAccount CreateAccount(string accountNumber, string pinCode, decimal initialBalance)
         {
             // Validate input values
-            if (string.IsNullOrWhiteSpace(accountNumber) || string.IsNullOrWhiteSpace(pinCode))
+            if (string.IsNullOrWhiteSpace(accountNumber))
             {
-                throw new InvalidOperationException("Account number and PIN code cannot be empty.");
+                throw new InvalidOperationException("Account number cannot be empty.");
+            }
+
+            if (!IsValidPin(pinCode))
+            {
+                throw new InvalidOperationException("PIN code must be exactly 4 digits long and contain only numbers.");
             }
 
             BankAccount newAccount = new BankAccount
@@ -95,10 +101,13 @@ namespace H3_BankThing.Services
         /// <param name="account">The bank account to check.</param>
         /// <param name="amount">The amount to compare against the account balance.</param>
         /// <returns><c>true</c> if the account has sufficient balance; otherwise, <c>false</c>.</returns>
-        public bool HasSufficientBalance(BankAccount account, decimal amount)
-        {
-            
-            return account.Balance >= amount;
-        }
+        public bool HasSufficientBalance(BankAccount account, decimal amount) => account.Balance >= amount;
+
+        /// <summary>
+        /// Validates whether the provided PIN is exactly 4 digits long and only contains numbers.
+        /// </summary>
+        /// <param name="pinCode">The PIN code to validate.</param>
+        /// <returns>True if the PIN is valid, otherwise false.</returns>
+        public bool IsValidPin(string pinCode) => Regex.IsMatch(pinCode, @"^\d{4}$");
     }
 }

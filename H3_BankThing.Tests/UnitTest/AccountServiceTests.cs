@@ -3,6 +3,7 @@ using H3_BankThing.Interfaces;
 using H3_BankThing.Models;
 using H3_BankThing.Repositories;
 using H3_BankThing.Services;
+using H3_BankThing.Tests.Factories;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System;
@@ -39,26 +40,36 @@ namespace H3_BankThing.Tests.UnitTest
         [Fact]
         public void Cannot_Create_Account_Without_Account_Number()
         {
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(accountNumberOverride: "");
+
             // Assert that an exception is thrown when the account number is empty
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.CreateAccount("", "1234", 1000));
+                _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance));
 
             // Assert the exception message
-            Assert.Equal("Account number and PIN code cannot be empty.", exception.Message);
+            Assert.Equal("Account number cannot be empty.", exception.Message);
         }
 
         /// <summary>
-        /// Tests that an exception is thrown when attempting to create an account without a PIN code.
+        /// Tests that an exception is thrown when attempting to create an account with an invalid PIN code.
         /// </summary>
-        [Fact]
-        public void Cannot_Create_Account_Without_PIN()
+        [Theory]
+        [InlineData("123")]
+        [InlineData("12345")]
+        [InlineData("12a4")]
+        [InlineData("abcd")]
+        [InlineData("!@#$")]
+        [InlineData(" 123")]
+        public void Cannot_Create_Account_With_Invalid_PIN(string invalidPin)
         {
-            // Assert that an exception is thrown when the PIN code is empty
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(pinCodeOverride: invalidPin);
+
+            // Assert that an exception is thrown when the PIN is invalid
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.CreateAccount("12345678", "", 1000));
+                _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance));
 
             // Assert the exception message
-            Assert.Equal("Account number and PIN code cannot be empty.", exception.Message);
+            Assert.Equal("PIN code must be exactly 4 digits long and contain only numbers.", exception.Message);
         }
 
         /// <summary>
@@ -68,15 +79,10 @@ namespace H3_BankThing.Tests.UnitTest
         [Fact]
         public void Returns_True_When_Balance_Is_Sufficient()
         {
-            BankAccount account = new BankAccount
-            {
-                AccountNumber = "12345678",
-                PinCode = "1234",
-                Balance = 500
-            };
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 500);
 
             // Assert that the method returns true for a withdrawal of 300
-            Assert.True(_accountService.HasSufficientBalance(account, 300));
+            Assert.True(_accountService.HasSufficientBalance(fakeAccount, 300));
         }
 
         /// <summary>
@@ -86,15 +92,10 @@ namespace H3_BankThing.Tests.UnitTest
         [Fact]
         public void Returns_False_When_Balance_Is_InSufficient()
         {
-            BankAccount account = new BankAccount
-            {
-                AccountNumber = "12345678",
-                PinCode = "1234",
-                Balance = 200
-            };
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 200);
 
             // Assert that the method returns false for a withdrawal of 300
-            Assert.False(_accountService.HasSufficientBalance(account, 300));
+            Assert.False(_accountService.HasSufficientBalance(fakeAccount, 300));
         }
     }
 }
