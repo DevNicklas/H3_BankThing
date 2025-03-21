@@ -3,6 +3,7 @@ using H3_BankThing.Models;
 using H3_BankThing.Repositories;
 using H3_BankThing.Services;
 using H3_BankThing.Tests.Factories;
+using Meziantou.Xunit;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace H3_BankThing.Tests.IntegrationTest
     /// Integration tests for the <see cref="AccountService"/> class, ensuring database interactions 
     /// and business logic function correctly.
     /// </summary>
+    [DisableParallelization]
     public class AccountServiceIntegrationTests
     {
         private readonly ApplicationDbContext _context;
@@ -84,12 +86,12 @@ namespace H3_BankThing.Tests.IntegrationTest
         [Fact]
         public void Cannot_Withdraw_With_Incorrect_PIN()
         {
-            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 500);
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(pinCodeOverride: "1234", balanceOverride: 500);
 
             _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.Withdraw(fakeAccount.AccountNumber, "9999", 200)); // Fake wrong PIN
+                _accountService.Withdraw(fakeAccount.AccountNumber, "9999", 200));
 
             Assert.Equal("Invalid account number or PIN.", exception.Message);
         }
@@ -100,12 +102,12 @@ namespace H3_BankThing.Tests.IntegrationTest
         [Fact]
         public void Cannot_Withdraw_With_Incorrect_Account_Number()
         {
-            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 500);
+            BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(accountNumberOverride: "12345678",balanceOverride: 500);
 
             _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                _accountService.Withdraw("00000000", fakeAccount.PinCode, 200)); // Fake wrong account number
+                _accountService.Withdraw("00000000", fakeAccount.PinCode, 200));
 
             Assert.Equal("Invalid account number or PIN.", exception.Message);
         }

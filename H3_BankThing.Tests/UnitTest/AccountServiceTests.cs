@@ -7,11 +7,9 @@ using H3_BankThing.Tests.Factories;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Security.Principal;
-using System.Text;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace H3_BankThing.Tests.UnitTest
 {
@@ -25,8 +23,8 @@ namespace H3_BankThing.Tests.UnitTest
         private readonly AccountService _accountService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AccountServiceTests"/> class 
-        /// and sets up a mock repository and account service instance.
+        /// Initializes a new instance of the <see cref="AccountServiceTests"/> class, 
+        /// setting up a mock repository and an instance of <see cref="AccountService"/>.
         /// </summary>
         public AccountServiceTests()
         {
@@ -42,17 +40,17 @@ namespace H3_BankThing.Tests.UnitTest
         {
             BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(accountNumberOverride: "");
 
-            // Assert that an exception is thrown when the account number is empty
+            // Assert that an exception is thrown with the expected message
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance));
 
-            // Assert the exception message
             Assert.Equal("Account number cannot be empty.", exception.Message);
         }
 
         /// <summary>
         /// Tests that an exception is thrown when attempting to create an account with an invalid PIN code.
         /// </summary>
+        /// <param name="invalidPin">The invalid PIN code to test.</param>
         [Theory]
         [InlineData("123")]
         [InlineData("12345")]
@@ -64,37 +62,36 @@ namespace H3_BankThing.Tests.UnitTest
         {
             BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(pinCodeOverride: invalidPin);
 
-            // Assert that an exception is thrown when the PIN is invalid
+            // Assert that an exception is thrown with the expected message
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 _accountService.CreateAccount(fakeAccount.AccountNumber, fakeAccount.PinCode, fakeAccount.Balance));
 
-            // Assert the exception message
             Assert.Equal("PIN code must be exactly 4 digits long and contain only numbers.", exception.Message);
         }
 
         /// <summary>
-        /// Tests that <see cref="AccountService.HasSufficientBalance"/> returns true 
-        /// when the account has enough balance for the requested withdrawal.
+        /// Tests that the <see cref="AccountService.HasSufficientBalance"/> method returns true 
+        /// when there is sufficient balance in the account for the requested withdrawal.
         /// </summary>
         [Fact]
         public void Returns_True_When_Balance_Is_Sufficient()
         {
             BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 500);
 
-            // Assert that the method returns true for a withdrawal of 300
+            // Assert that the account has sufficient balance for a withdrawal of 300
             Assert.True(_accountService.HasSufficientBalance(fakeAccount, 300));
         }
 
         /// <summary>
-        /// Tests that <see cref="AccountService.HasSufficientBalance"/> returns false 
-        /// when the account does not have enough balance for the requested withdrawal.
+        /// Tests that the <see cref="AccountService.HasSufficientBalance"/> method returns false 
+        /// when there is insufficient balance in the account for the requested withdrawal.
         /// </summary>
         [Fact]
         public void Returns_False_When_Balance_Is_InSufficient()
         {
             BankAccount fakeAccount = BankAccountFactory.NewFakeAccount(balanceOverride: 200);
 
-            // Assert that the method returns false for a withdrawal of 300
+            // Assert that the account does not have sufficient balance for a withdrawal of 300
             Assert.False(_accountService.HasSufficientBalance(fakeAccount, 300));
         }
     }
